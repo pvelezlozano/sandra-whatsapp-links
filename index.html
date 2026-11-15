@@ -205,6 +205,18 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     return s;
   }
 
+  // Periodo siempre con la primera letra de cada palabra en mayúscula: "AGOSTO 2027" -> "Agosto 2027".
+  const SMALL = new Set(["de", "del", "y", "a", "e", "la", "el"]);
+  function fmtPeriod(raw) {
+    const s = String(raw ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+    let first = true;
+    return s.replace(/\p{L}+/gu, w => {
+      const out = !first && SMALL.has(w) ? w : w[0].toUpperCase() + w.slice(1);
+      first = false;
+      return out;
+    });
+  }
+
   // ---------- file reading ----------
   function readFile(file) {
     $("fileName").textContent = file.name;
@@ -294,7 +306,7 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
       let rawPhone = pi >= 0 ? r[pi] : "";
       if (!String(rawPhone).trim()) for (const a of altPhones) if (String(r[a]).trim()) { rawPhone = r[a]; break; }
       const phone = normPhone(rawPhone);
-      const periodo = (ri >= 0 ? String(r[ri] ?? "").trim() : "") || defP;
+      const periodo = fmtPeriod((ri >= 0 ? String(r[ri] ?? "").trim() : "") || defP);
       const msg = tpl.replace(/\{\s*nombre\s*\}/gi, nombre).replace(/\{\s*periodo\s*\}/gi, periodo)
         .replace(/Hola\s+!/, "Hola!");
       const link = phone.ok ? `https://api.whatsapp.com/send?phone=${phone.digits}&text=${encodeURIComponent(msg)}` : "";
