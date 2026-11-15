@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Links de WhatsApp</title>
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #f6f4f1; --card: #ffffff; --ink: #1f1f1f; --muted: #6b6b6b; --line: #e3dfd9;
+    --accent: #ff5900; --accent-ink: #ffffff; --wa: #1fa855; --warn-bg: #fff4e5; --warn-ink: #8a4b00;
+    --ok-bg: #e9f7ef; --sent: #f0f0f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161514; --card: #201f1d; --ink: #f1efec; --muted: #a39f99; --line: #34322f;
+      --warn-bg: #3a2a14; --warn-ink: #ffcf91; --ok-bg: #18301f; --sent: #2a2927;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 28px 16px; text-align: center; cursor: pointer; transition: .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .drop strong { color: var(--accent); }
+  .drop input { display: none; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  select, input[type=text], textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  textarea { min-height: 150px; resize: vertical; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  code { background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 13px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .check { display: flex; gap: 6px; align-items: center; font-size: 14px; color: var(--ink); margin: 0; }
+  button, .btn { font: inherit; border: 0; border-radius: 8px; padding: 7px 12px; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .btn-wa { background: var(--wa); color: #fff; }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-accent { background: var(--accent); color: var(--accent-ink); }
+  .alert { border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; background: var(--warn-bg); color: var(--warn-ink); }
+  .alert.ok { background: var(--ok-bg); color: var(--ink); }
+  .alert ul { margin: 6px 0 0; padding-left: 20px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr.sent td { background: var(--sent); color: var(--muted); }
+  td.msg { max-width: 360px; white-space: pre-wrap; color: var(--muted); font-size: 13px; }
+  .bad { color: #d33; font-size: 13px; }
+  .stats { color: var(--muted); font-size: 14px; }
+  .hidden { display: none; }
+  @media (max-width: 640px) { td.msg { display: none; } th.msg { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Links de WhatsApp</h1>
+  <p class="sub">Sube la exportación de HubSpot (.xlsx o .csv) y genera un link de WhatsApp con mensaje personalizado para cada contacto. El archivo se lee aquí en tu navegador y no se sube a ningún servidor.</p>
+
+  <section class="card">
+    <h2>1. Archivo</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".xlsx,.xls,.csv">
+      <div><strong>Elige un archivo</strong> o arrástralo aquí</div>
+      <div class="hint" id="fileName">Excel o CSV exportado de HubSpot</div>
+    </label>
+  </section>
+
+  <div id="alerts"></div>
+
+  <section class="card hidden" id="mapCard">
+    <h2>2. Columnas</h2>
+    <div class="grid">
+      <div><label for="colName">Nombre</label><select id="colName"></select></div>
+      <div><label for="colPhone">Teléfono</label><select id="colPhone"></select></div>
+      <div><label for="colPeriod">Periodo</label><select id="colPeriod"></select></div>
+      <div><label for="defPeriod">Periodo por defecto (si viene vacío)</label><input type="text" id="defPeriod" placeholder="Agosto 2027"></div>
+      <div><label for="cc">Lada de país (si el número no la trae)</label><input type="text" id="cc" value="52"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label class="check"><input type="checkbox" id="firstOnly" checked> Usar solo el primer nombre</label>
+      <label class="check"><input type="checkbox" id="fallbackPhones" checked> Si el teléfono viene vacío, usar otra columna de teléfono</label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Mensaje</h2>
+    <textarea id="tpl"></textarea>
+    <div class="hint">Usa <code>{nombre}</code> y <code>{periodo}</code> donde quieras que se inserten los datos. Los emojis se respetan.
+      <button class="btn-ghost" id="resetTpl" type="button" style="padding:2px 8px;margin-left:6px">Restaurar mensaje original</button></div>
+  </section>
+
+  <section class="card hidden" id="resultsCard">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin:0">4. Links</h2>
+      <div class="row">
+        <span class="stats" id="stats"></span>
+        <label class="check"><input type="checkbox" id="hideSent"> Ocultar enviados</label>
+        <button class="btn-ghost" id="exportCsv" type="button">Descargar CSV con links</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Nombre</th><th>Teléfono</th><th>Periodo</th><th class="msg">Mensaje</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(() => {
+  const DEFAULT_TPL =
+`Hola {nombre}!☺️
+
+Soy Sandra Cáceres, tu asesora Pre Universitaria de la Universidad Anáhuac Mérida🦁
+
+Veo que estás interesado en seguir conociendo de la Universidad para ingreso en {periodo}, es correcto??`;
+
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  let headers = [], data = [], sheetName = "";
+  let sent = new Set(JSON.parse(store.get("wa.sent", "[]")));
+
+  // ---------- column detection ----------
+  const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const PHONE_RE = /(telefono|phone|movil|celular|cel\b|whatsapp|mobile|tel\b)/;
+  const isPhoneHeader = h => PHONE_RE.test(norm(h));
+  function phoneScore(h) {
+    const n = norm(h);
+    if (/whatsapp/.test(n)) return 4;
+    if (/(movil|mobile|celular|cel\b)/.test(n)) return 3;
+    if (/(telefono|phone|tel\b)/.test(n)) return 2;
+    return 0;
+  }
+  function nameScore(h) {
+    const n = norm(h);
+    if (/^(nombre|first name|nombre de pila|primer nombre)$/.test(n)) return 5;
+    if (/^(nombre completo|full name|name)$/.test(n)) return 4;
+    if (/nombre del contacto|contact name/.test(n)) return 4;
+    if (/^nombre/.test(n) && !/(negocio|deal|empresa|company|propietario|owner|colegio|escuela)/.test(n)) return 3;
+    if (/nombre del negocio|deal name/.test(n)) return 1;
+    return 0;
+  }
+  const periodScore = h => /(periodo|period|ingreso|ciclo)/.test(norm(h)) ? 3 : 0;
+  const best = (scoreFn) => {
+    let bi = -1, bs = 0;
+    headers.forEach((h, i) => { const s = scoreFn(h); if (s > bs) { bs = s; bi = i; } });
+    return bi;
+  };
+  const filled = i => data.filter(r => String(r[i] ?? "").trim() !== "").length;
+
+  // ---------- phone normalization ----------
+  function normPhone(raw) {
+    let s = String(raw ?? "").trim();
+    if (!s) return { ok: false, reason: "vacío" };
+    if (/e\+/i.test(s) && !isNaN(Number(s))) s = BigInt(Math.round(Number(s))).toString();
+    const hadPlus = s.startsWith("+") || s.startsWith("00");
+    let d = s.replace(/\D/g, "");
+    if (s.startsWith("00")) d = d.slice(2);
+    const cc = ($("cc").value || "").replace(/\D/g, "");
+    if (!hadPlus && d.length === 10 && cc) d = cc + d;
+    if (d.startsWith("521") && d.length === 13) d = "52" + d.slice(3); // formato viejo de celular MX
+    if (d.length < 11 || d.length > 15) return { ok: false, reason: "número inválido", digits: d };
+    return { ok: true, digits: d };
+  }
+  const prettyPhone = d => d.startsWith("52") && d.length === 12
+    ? `+52 ${d.slice(2, 5)} ${d.slice(5, 8)} ${d.slice(8)}` : "+" + d;
+
+  // ---------- name formatting ----------
+  function fmtName(raw) {
+    let s = String(raw ?? "").trim().replace(/\s+/g, " ");
+    if (!s) return "";
+    if ($("firstOnly").checked) s = s.split(" ")[0];
+    if (s === s.toUpperCase() || s === s.toLowerCase())
+      s = s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+    return s;
+  }
+
+  // ---------- file reading ----------
+  function readFile(file) {
+    $("fileName").textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: "array", raw: false });
+        sheetName = wb.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: "", raw: false });
+        headers = (rows[0] || []).map(h => String(h).trim());
+        data = rows.slice(1).filter(r => r.some(c => String(c).trim() !== ""));
+        setupMapping();
+      } catch (err) {
+        showAlerts([`No se pudo leer el archivo: ${err.message}`]);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function fillSelect(sel, idx, allowNone) {
+    sel.innerHTML = (allowNone ? `<option value="-1">— ninguna —</option>` : "") +
+      headers.map((h, i) => `<option value="${i}">${esc(h || "(sin título)")} · ${filled(i)} con datos</option>`).join("");
+    sel.value = String(idx);
+  }
+
+  function setupMapping() {
+    const phoneCols = headers.map((h, i) => i).filter(i => isPhoneHeader(headers[i]))
+      .sort((a, b) => phoneScore(headers[b]) - phoneScore(headers[a]) || filled(b) - filled(a));
+    fillSelect($("colName"), best(nameScore), true);
+    fillSelect($("colPhone"), phoneCols.length ? phoneCols[0] : -1, true);
+    fillSelect($("colPeriod"), best(periodScore), true);
+    if (!$("defPeriod").value) $("defPeriod").value = sheetName && !/^(sheet|hoja)\s*\d*$/i.test(sheetName) ? sheetName : "";
+    $("mapCard").classList.remove("hidden");
+    render();
+  }
+
+  // ---------- render ----------
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function buildRows() {
+    const ni = +$("colName").value, pi = +$("colPhone").value, ri = +$("colPeriod").value;
+    const altPhones = $("fallbackPhones").checked
+      ? headers.map((h, i) => i).filter(i => i !== pi && isPhoneHeader(headers[i])) : [];
+    const tpl = $("tpl").value, defP = $("defPeriod").value.trim();
+    return data.map((r, idx) => {
+      const nombre = ni >= 0 ? fmtName(r[ni]) : "";
+      let rawPhone = pi >= 0 ? r[pi] : "";
+      if (!String(rawPhone).trim()) for (const a of altPhones) if (String(r[a]).trim()) { rawPhone = r[a]; break; }
+      const phone = normPhone(rawPhone);
+      const periodo = (ri >= 0 ? String(r[ri] ?? "").trim() : "") || defP;
+      const msg = tpl.replace(/\{\s*nombre\s*\}/gi, nombre).replace(/\{\s*periodo\s*\}/gi, periodo)
+        .replace(/Hola\s+!/, "Hola!");
+      const link = phone.ok ? `https://api.whatsapp.com/send?phone=${phone.digits}&text=${encodeURIComponent(msg)}` : "";
+      return { idx: idx + 1, nombre, rawPhone, phone, periodo, msg, link };
+    });
+  }
+
+  function render() {
+    store.set("wa.tpl", $("tpl").value);
+    if (!headers.length) return;
+    const pi = +$("colPhone").value, ni = +$("colName").value;
+    const warn = [];
+    const anyPhoneCol = headers.some(isPhoneHeader);
+    if (pi < 0) {
+      warn.push(anyPhoneCol
+        ? "Elige la columna de teléfono."
+        : `Este archivo no tiene ninguna columna de teléfono (columnas encontradas: ${headers.map(esc).join(", ")}). Pide una nueva exportación de HubSpot que incluya <b>Número de teléfono</b> o <b>Número de teléfono móvil</b>.`);
+    }
+    if (ni < 0) warn.push("No se encontró columna de nombre: el saludo quedará como “Hola!”.");
+    else if (filled(ni) === 0) warn.push(`La columna “${esc(headers[ni])}” está vacía.`);
+
+    const rows = buildRows();
+    const okCount = rows.filter(r => r.phone.ok).length;
+    showAlerts(warn, okCount && !warn.length ? `${okCount} de ${rows.length} contactos listos.` : "");
+
+    const hide = $("hideSent").checked;
+    $("rows").innerHTML = rows.filter(r => !(hide && r.phone.ok && sent.has(r.phone.digits))).map(r => {
+      const isSent = r.phone.ok && sent.has(r.phone.digits);
+      const phoneCell = r.phone.ok ? esc(prettyPhone(r.phone.digits))
+        : `<span class="bad">${esc(r.rawPhone || "")} ${r.rawPhone ? "· " : ""}${r.phone.reason}</span>`;
+      const actions = r.phone.ok
+        ? `<div class="row"><a class="btn btn-wa" href="${esc(r.link)}" target="_blank" rel="noopener" data-d="${r.phone.digits}">WhatsApp</a>
+           <button class="btn-ghost" data-copy="${esc(r.link)}">Copiar link</button>
+           <label class="check"><input type="checkbox" data-sent="${r.phone.digits}" ${isSent ? "checked" : ""}> Enviado</label></div>`
+        : "";
+      return `<tr class="${isSent ? "sent" : ""}"><td>${r.idx}</td><td>${esc(r.nombre || "—")}</td><td>${phoneCell}</td>
+        <td>${esc(r.periodo || "—")}</td><td class="msg">${esc(r.msg)}</td><td>${actions}</td></tr>`;
+    }).join("");
+    $("stats").textContent = `${okCount} con teléfono · ${rows.filter(r => r.phone.ok && sent.has(r.phone.digits)).length} enviados`;
+    $("resultsCard").classList.remove("hidden");
+    window.__rows = rows;
+  }
+
+  function showAlerts(warn, okMsg) {
+    $("alerts").innerHTML =
+      (warn.length ? `<div class="alert"><b>Atención</b><ul>${warn.map(w => `<li>${w}</li>`).join("")}</ul></div>` : "") +
+      (okMsg ? `<div class="alert ok">${esc(okMsg)}</div>` : "");
+  }
+
+  function markSent(d, v) {
+    v ? sent.add(d) : sent.delete(d);
+    store.set("wa.sent", JSON.stringify([...sent]));
+  }
+
+  // ---------- events ----------
+  $("tpl").value = store.get("wa.tpl", DEFAULT_TPL);
+  $("resetTpl").onclick = () => { $("tpl").value = DEFAULT_TPL; render(); };
+  $("file").onchange = e => e.target.files[0] && readFile(e.target.files[0]);
+  const drop = $("drop");
+  ["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => e.dataTransfer.files[0] && readFile(e.dataTransfer.files[0]));
+  ["colName", "colPhone", "colPeriod", "firstOnly", "fallbackPhones", "hideSent"].forEach(id => $(id).addEventListener("change", render));
+  ["tpl", "defPeriod", "cc"].forEach(id => $(id).addEventListener("input", render));
+
+  $("rows").addEventListener("click", e => {
+    const a = e.target.closest("a[data-d]");
+    if (a) { markSent(a.dataset.d, true); setTimeout(render, 300); return; }
+    const c = e.target.closest("button[data-copy]");
+    if (c) navigator.clipboard.writeText(c.dataset.copy).then(() => { c.textContent = "¡Copiado!"; setTimeout(() => c.textContent = "Copiar link", 1200); });
+  });
+  $("rows").addEventListener("change", e => {
+    const cb = e.target.closest("input[data-sent]");
+    if (cb) { markSent(cb.dataset.sent, cb.checked); render(); }
+  });
+
+  $("exportCsv").onclick = () => {
+    const rows = window.__rows || [];
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = ["Nombre,Telefono,Periodo,Link"]
+      .concat(rows.map(r => [r.nombre, r.phone.ok ? "+" + r.phone.digits : r.rawPhone, r.periodo, r.link].map(q).join(",")))
+      .join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: "links-whatsapp.csv" });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+})();
+</script>
+</body>
+</html>
