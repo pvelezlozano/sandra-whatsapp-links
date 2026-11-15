@@ -9,12 +9,12 @@
   :root {
     --bg: #f6f4f1; --card: #ffffff; --ink: #1f1f1f; --muted: #6b6b6b; --line: #e3dfd9;
     --accent: #ff5900; --accent-ink: #ffffff; --wa: #1fa855; --warn-bg: #fff4e5; --warn-ink: #8a4b00;
-    --ok-bg: #e9f7ef; --sent: #f0f0f0;
+    --ok-bg: #e9f7ef; --sent: #f0f0f0; --err-bg: #fdecec; --err-ink: #b42318;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #161514; --card: #201f1d; --ink: #f1efec; --muted: #a39f99; --line: #34322f;
-      --warn-bg: #3a2a14; --warn-ink: #ffcf91; --ok-bg: #18301f; --sent: #2a2927;
+      --warn-bg: #3a2a14; --warn-ink: #ffcf91; --ok-bg: #18301f; --sent: #2a2927; --err-bg: #3b1616; --err-ink: #ff9b93;
     }
   }
   * { box-sizing: border-box; }
@@ -45,6 +45,7 @@
   .btn-accent { background: var(--accent); color: var(--accent-ink); }
   .alert { border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; background: var(--warn-bg); color: var(--warn-ink); }
   .alert.ok { background: var(--ok-bg); color: var(--ink); }
+  .alert.error { background: var(--err-bg); color: var(--err-ink); border: 1px solid var(--err-ink); }
   .alert ul { margin: 6px 0 0; padding-left: 20px; }
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -65,7 +66,7 @@
 <body>
 <main>
   <h1>Links de WhatsApp</h1>
-  <p class="sub">Sube la exportación de HubSpot (.xlsx o .csv) y genera un link de WhatsApp con mensaje personalizado para cada contacto. El archivo se lee aquí en tu navegador y no se sube a ningún servidor.</p>
+  <p class="sub">Sube la exportación de HubSpot (.xlsx o .csv) y genera un link de WhatsApp con mensaje personalizado para cada contacto.</p>
 
   <section class="card">
     <h2>1. Archivo</h2>
@@ -217,7 +218,10 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
         data = rows.slice(1).filter(r => r.some(c => String(c).trim() !== ""));
         setupMapping();
       } catch (err) {
-        showAlerts([`No se pudo leer el archivo: ${err.message}`]);
+        headers = []; data = [];
+        $("mapCard").classList.add("hidden");
+        $("resultsCard").classList.add("hidden");
+        showError(`<b>Error: no se pudo leer el archivo.</b> ${esc(err.message)}`);
       }
     };
     reader.readAsArrayBuffer(file);
@@ -232,8 +236,17 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
   function setupMapping() {
     const phoneCols = headers.map((h, i) => i).filter(i => isPhoneHeader(headers[i]))
       .sort((a, b) => phoneScore(headers[b]) - phoneScore(headers[a]) || filled(b) - filled(a));
+    if (!phoneCols.length) {
+      $("mapCard").classList.add("hidden");
+      $("resultsCard").classList.add("hidden");
+      window.__rows = [];
+      showError(`<b>Error: el archivo no tiene columna de teléfono.</b><br>
+        Columnas encontradas: ${headers.map(h => esc(h || "(sin título)")).join(", ")}.<br>
+        Vuelve a exportar desde HubSpot incluyendo <b>Número de teléfono móvil</b> o <b>Número de teléfono</b>.`);
+      return;
+    }
     fillSelect($("colName"), best(nameScore), true);
-    fillSelect($("colPhone"), phoneCols.length ? phoneCols[0] : -1, true);
+    fillSelect($("colPhone"), phoneCols[0], false);
     fillSelect($("colPeriod"), best(periodScore), true);
     if (!$("defPeriod").value) $("defPeriod").value = sheetName && !/^(sheet|hoja)\s*\d*$/i.test(sheetName) ? sheetName : "";
     $("mapCard").classList.remove("hidden");
@@ -291,15 +304,10 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
 
   function render() {
     store.set("wa.tpl", $("tpl").value);
-    if (!headers.length) return;
+    if (!headers.length || $("mapCard").classList.contains("hidden")) return;
     const pi = +$("colPhone").value, ni = +$("colName").value;
     const warn = [];
-    const anyPhoneCol = headers.some(isPhoneHeader);
-    if (pi < 0) {
-      warn.push(anyPhoneCol
-        ? "Elige la columna de teléfono."
-        : `Este archivo no tiene ninguna columna de teléfono (columnas encontradas: ${headers.map(esc).join(", ")}). Pide una nueva exportación de HubSpot que incluya <b>Número de teléfono</b> o <b>Número de teléfono móvil</b>.`);
-    }
+    if (filled(pi) === 0) warn.push(`La columna de teléfono “${esc(headers[pi])}” está vacía.`);
     if (ni < 0) warn.push("No se encontró columna de nombre: el saludo quedará como “Hola!”.");
     else if (filled(ni) === 0) warn.push(`La columna “${esc(headers[ni])}” está vacía.`);
 
@@ -335,6 +343,10 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     $("alerts").innerHTML =
       (warn.length ? `<div class="alert"><b>Atención</b><ul>${warn.map(w => `<li>${w}</li>`).join("")}</ul></div>` : "") +
       (okMsg ? `<div class="alert ok">${esc(okMsg)}</div>` : "");
+  }
+
+  function showError(html) {
+    $("alerts").innerHTML = `<div class="alert error" role="alert">${html}</div>`;
   }
 
   function markSent(d, v) {

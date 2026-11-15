@@ -2,3 +2,4 @@
 *.xls
 *.csv
 .DS_Store
+!ejemplos/*.xlsx
