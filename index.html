@@ -45,7 +45,7 @@
   .gear:hover, .gear[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
   .gear svg { width: 20px; height: 20px; transition: transform .4s ease; }
   .gear[aria-expanded="true"] svg { transform: rotate(60deg); }
-  .menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; min-width: 220px; padding: 12px;
+  .menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; width: 250px; max-width: calc(100vw - 32px); padding: 12px;
     background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.18);
     opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .18s ease, transform .18s ease; }
   .menu.open { opacity: 1; transform: none; pointer-events: auto; }
@@ -55,6 +55,12 @@
   .seg button { flex-direction: column; gap: 2px; padding: 8px 4px; font-size: 12px; justify-content: center;
     background: transparent; color: var(--muted); border-radius: 7px; }
   .seg button svg { width: 18px; height: 18px; }
+  .menu-sep { border: 0; border-top: 1px solid var(--line); margin: 14px 0 12px; }
+  .menu select { margin-bottom: 2px; }
+  .btn-danger { width: 100%; justify-content: center; margin-top: 10px; background: transparent;
+    border: 1px solid var(--err-ink); color: var(--err-ink); transition: background .2s, color .2s; }
+  .btn-danger:hover:not(:disabled), .btn-danger.confirm { background: var(--err-ink); color: var(--card); }
+  .btn-danger:disabled { opacity: .45; cursor: default; }
   .seg button[aria-checked="true"] { background: var(--card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.15); }
   main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
   h1 { font-size: 24px; margin: 0 0 4px; }
@@ -153,6 +159,19 @@
           <button type="button" role="radio" data-theme-opt="dark">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Oscuro</button>
         </div>
+        <hr class="menu-sep">
+        <p class="menu-title">Enviados</p>
+        <label for="ttl">Se reinician solos después de</label>
+        <select id="ttl">
+          <option value="7">7 días</option>
+          <option value="15">15 días</option>
+          <option value="30">30 días</option>
+          <option value="60">60 días</option>
+          <option value="90">90 días</option>
+          <option value="0">Nunca</option>
+        </select>
+        <div class="hint" id="sentInfo"></div>
+        <button type="button" class="btn-danger" id="resetSent">Reiniciar enviados</button>
       </div>
     </div>
   </div>
@@ -237,7 +256,32 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
   };
 
   let headers = [], data = [], sheetName = "";
-  let sent = new Set(JSON.parse(store.get("wa.sent", "[]")));
+  // Enviados: número -> fecha en que se marcó (ms). Se guardan en este navegador y caducan según el ajuste.
+  const DAY = 864e5;
+  let sent = loadSent();
+  function loadSent() {
+    let raw; try { raw = JSON.parse(store.get("wa.sent", "{}")); } catch { raw = {}; }
+    if (Array.isArray(raw)) raw = Object.fromEntries(raw.map(d => [d, Date.now()])); // formato anterior (sin fecha)
+    return new Map(Object.entries(raw || {}).filter(([, t]) => typeof t === "number"));
+  }
+  const saveSent = () => store.set("wa.sent", JSON.stringify(Object.fromEntries(sent)));
+  const sentTTL = () => +store.get("wa.sentTTL", "30"); // días; 0 = nunca caducan
+  function pruneSent() {
+    const ttl = sentTTL();
+    if (!ttl) return;
+    const limit = Date.now() - ttl * DAY;
+    let changed = false;
+    for (const [d, t] of sent) if (t < limit) { sent.delete(d); changed = true; }
+    if (changed) saveSent();
+  }
+  pruneSent();
+  saveSent(); // guarda ya en el formato nuevo (con fecha) por si venía del formato anterior
+  const fmtDate = t => new Date(t).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+  function sentTitle(d) {
+    const t = sent.get(d); if (!t) return "";
+    const ttl = sentTTL();
+    return `Enviado el ${fmtDate(t)}` + (ttl ? ` · se reinicia el ${fmtDate(t + ttl * DAY)}` : "");
+  }
   // Periodos seleccionados (se recuerdan en el navegador). Por defecto: Enero 2027 y Agosto 2027.
   let selPeriods = new Set(JSON.parse(store.get("wa.periods", '["enero 2027","agosto 2027"]')));
   let periodTouched = false;
@@ -452,7 +496,7 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
 
   const SPARKS = [[-14,-12],[0,-16],[14,-12],[-14,12],[0,16],[14,12]];
   function sentBtn(d, isSent) {
-    return `<button type="button" class="sent-btn ${isSent ? "is-sent" : ""}" data-sent="${d}" aria-pressed="${isSent}">
+    return `<button type="button" class="sent-btn ${isSent ? "is-sent" : ""}" data-sent="${d}" aria-pressed="${isSent}" title="${esc(sentTitle(d))}">
       ${SPARKS.map(([x, y]) => `<i class="spark" style="--dx:${x}px;--dy:${y}px"></i>`).join("")}
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.2 3.2L17 9"/></svg>
       <span class="lbl">${isSent ? "Enviado" : "Marcar enviado"}</span></button>`;
@@ -466,6 +510,7 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
       b.classList.toggle("is-sent", value);
       b.setAttribute("aria-pressed", value);
       b.querySelector(".lbl").textContent = value ? "Enviado" : "Marcar enviado";
+      b.title = sentTitle(d);
       const tr = b.closest("tr");
       tr.classList.toggle("sent", value);
       b.classList.remove("pop");
@@ -487,8 +532,9 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
   }
 
   function markSent(d, v) {
-    v ? sent.add(d) : sent.delete(d);
-    store.set("wa.sent", JSON.stringify([...sent]));
+    v ? sent.set(d, Date.now()) : sent.delete(d);
+    saveSent();
+    updateSentInfo();
   }
 
   // ---------- events ----------
@@ -519,6 +565,34 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     if (b) applyTheme(b.dataset.themeOpt);
   });
   document.addEventListener("click", () => setMenu(false));
+
+  // ---------- ajustes: enviados ----------
+  function updateSentInfo() {
+    const n = sent.size;
+    $("sentInfo").textContent = n ? `${n} ${n === 1 ? "número marcado" : "números marcados"} en este navegador.`
+      : "No hay enviados marcados en este navegador.";
+    $("resetSent").disabled = n === 0;
+  }
+  $("ttl").value = String(sentTTL());
+  $("ttl").addEventListener("change", e => {
+    store.set("wa.sentTTL", e.target.value);
+    pruneSent(); updateSentInfo(); render();
+  });
+  let resetTimer;
+  $("resetSent").onclick = () => {
+    const b = $("resetSent");
+    if (!b.classList.contains("confirm")) {
+      b.classList.add("confirm"); b.textContent = "¿Seguro? Toca otra vez para borrar";
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { b.classList.remove("confirm"); b.textContent = "Reiniciar enviados"; }, 3500);
+      return;
+    }
+    clearTimeout(resetTimer);
+    sent.clear(); saveSent(); render(); updateSentInfo();
+    b.classList.remove("confirm"); b.textContent = "Listo ✓";
+    setTimeout(() => { b.textContent = "Reiniciar enviados"; }, 1500);
+  };
+  updateSentInfo();
   document.addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
 
   $("periodChips").addEventListener("change", () =>
