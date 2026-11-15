@@ -55,6 +55,10 @@
   .bad { color: #d33; font-size: 13px; }
   .stats { color: var(--muted); font-size: 14px; }
   .hidden { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 4px 10px; border: 1px solid var(--line);
+    border-radius: 999px; font-size: 14px; color: var(--ink); cursor: pointer; }
+  .chip:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .chip small { color: var(--muted); }
   @media (max-width: 640px) { td.msg { display: none; } th.msg { display: none; } }
 </style>
 </head>
@@ -86,6 +90,14 @@
     <div class="row" style="margin-top:12px">
       <label class="check"><input type="checkbox" id="firstOnly" checked> Usar solo el primer nombre</label>
       <label class="check"><input type="checkbox" id="fallbackPhones" checked> Si el teléfono viene vacío, usar otra columna de teléfono</label>
+    </div>
+    <div style="margin-top:16px">
+      <label>Filtrar por periodo <span id="periodHint"></span></label>
+      <div class="row" id="periodChips"></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn-ghost" type="button" id="periodAll" style="padding:2px 8px">Todos</button>
+        <button class="btn-ghost" type="button" id="periodNone" style="padding:2px 8px">Ninguno</button>
+      </div>
     </div>
   </section>
 
@@ -132,6 +144,9 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
 
   let headers = [], data = [], sheetName = "";
   let sent = new Set(JSON.parse(store.get("wa.sent", "[]")));
+  // Periodos seleccionados (se recuerdan en el navegador). Por defecto: Enero 2027 y Agosto 2027.
+  let selPeriods = new Set(JSON.parse(store.get("wa.periods", '["enero 2027","agosto 2027"]')));
+  let periodTouched = false;
 
   // ---------- column detection ----------
   const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
@@ -160,6 +175,7 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     return bi;
   };
   const filled = i => data.filter(r => String(r[i] ?? "").trim() !== "").length;
+  const pkey = s => norm(s).replace(/\s+/g, " ") || "(sin periodo)";
 
   // ---------- phone normalization ----------
   function normPhone(raw) {
@@ -221,6 +237,34 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     fillSelect($("colPeriod"), best(periodScore), true);
     if (!$("defPeriod").value) $("defPeriod").value = sheetName && !/^(sheet|hoja)\s*\d*$/i.test(sheetName) ? sheetName : "";
     $("mapCard").classList.remove("hidden");
+    periodTouched = false;
+    render();
+  }
+
+  // Dibuja los periodos encontrados y regresa el set de periodos activos.
+  function renderPeriods(rows) {
+    const found = new Map();
+    rows.forEach(r => {
+      const k = pkey(r.periodo);
+      if (!found.has(k)) found.set(k, { label: r.periodo || "(sin periodo)", count: 0 });
+      found.get(k).count++;
+    });
+    let active = new Set([...found.keys()].filter(k => selPeriods.has(k)));
+    const auto = !periodTouched && active.size === 0;
+    if (auto) active = new Set(found.keys());
+    $("periodHint").textContent = auto && found.size
+      ? "· ninguno de los periodos guardados aparece en este archivo, se muestran todos" : "";
+    $("periodChips").innerHTML = [...found.entries()]
+      .sort((a, b) => a[1].label.localeCompare(b[1].label, "es"))
+      .map(([k, v]) => `<label class="chip"><input type="checkbox" data-period="${esc(k)}" ${active.has(k) ? "checked" : ""}>
+        ${esc(v.label)} <small>${v.count}</small></label>`).join("");
+    return active;
+  }
+
+  function setPeriods(keys) {
+    periodTouched = true;
+    selPeriods = new Set(keys);
+    store.set("wa.periods", JSON.stringify([...selPeriods]));
     render();
   }
 
@@ -259,9 +303,15 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     if (ni < 0) warn.push("No se encontró columna de nombre: el saludo quedará como “Hola!”.");
     else if (filled(ni) === 0) warn.push(`La columna “${esc(headers[ni])}” está vacía.`);
 
-    const rows = buildRows();
+    const allRows = buildRows();
+    const active = renderPeriods(allRows);
+    const rows = allRows.filter(r => active.has(pkey(r.periodo)));
     const okCount = rows.filter(r => r.phone.ok).length;
-    showAlerts(warn, okCount && !warn.length ? `${okCount} de ${rows.length} contactos listos.` : "");
+    const hiddenByPeriod = allRows.length - rows.length;
+    if (allRows.length && !rows.length) warn.push("No hay ningún periodo seleccionado en el filtro.");
+    showAlerts(warn, okCount && !warn.length
+      ? `${okCount} de ${rows.length} contactos listos.` + (hiddenByPeriod ? ` (${hiddenByPeriod} ocultos por el filtro de periodo)` : "")
+      : "");
 
     const hide = $("hideSent").checked;
     $("rows").innerHTML = rows.filter(r => !(hide && r.phone.ok && sent.has(r.phone.digits))).map(r => {
@@ -302,6 +352,11 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
   drop.addEventListener("drop", e => e.dataTransfer.files[0] && readFile(e.dataTransfer.files[0]));
   ["colName", "colPhone", "colPeriod", "firstOnly", "fallbackPhones", "hideSent"].forEach(id => $(id).addEventListener("change", render));
   ["tpl", "defPeriod", "cc"].forEach(id => $(id).addEventListener("input", render));
+
+  $("periodChips").addEventListener("change", () =>
+    setPeriods([...$("periodChips").querySelectorAll("input[data-period]:checked")].map(i => i.dataset.period)));
+  $("periodAll").onclick = () => setPeriods([...$("periodChips").querySelectorAll("input[data-period]")].map(i => i.dataset.period));
+  $("periodNone").onclick = () => setPeriods([]);
 
   $("rows").addEventListener("click", e => {
     const a = e.target.closest("a[data-d]");

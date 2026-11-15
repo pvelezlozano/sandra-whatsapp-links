@@ -6,6 +6,7 @@ Página estática para generar links de WhatsApp con mensaje personalizado a par
 - Detecta automáticamente las columnas de **Nombre**, **Teléfono** (móvil / WhatsApp / teléfono) y **Periodo**; se pueden cambiar a mano.
 - El mensaje es editable y acepta `{nombre}` y `{periodo}`.
 - Números de 10 dígitos se completan con la lada `52` (configurable).
+- Filtro de periodos: muestra los periodos que trae el archivo y se eligen con un clic (por defecto Enero 2027 y Agosto 2027). La selección se recuerda.
 - "Enviado" se guarda en el navegador para llevar control.
 
 ## Qué debe traer el Excel
