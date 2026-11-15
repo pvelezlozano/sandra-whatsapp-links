@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Links de WhatsApp</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#ff5900">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <style>
   :root {
     --bg: #f6f4f1; --card: #ffffff; --ink: #1f1f1f; --muted: #6b6b6b; --line: #e3dfd9;
@@ -20,8 +22,17 @@
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
     font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .brand { background: var(--card); border-top: 4px solid var(--accent); border-bottom: 1px solid var(--line); }
+  .brand-inner { max-width: 1100px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .brand img { height: 30px; width: auto; display: block; max-width: 100%; }
+  .brand .tag { font-size: 13px; color: var(--muted); }
   main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
   h1 { font-size: 24px; margin: 0 0 4px; }
+  h1 span { color: var(--accent); }
+  .card h2 b { color: var(--accent); }
+  select:focus, input[type=text]:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  input[type=checkbox] { accent-color: var(--accent); }
   .sub { color: var(--muted); margin: 0 0 24px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
   .card h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -51,7 +62,36 @@
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  td { transition: background .4s ease, color .4s ease; }
   tr.sent td { background: var(--sent); color: var(--muted); }
+  tr.leaving { opacity: 0; transition: opacity .35s ease; }
+
+  /* Botón "Enviado" */
+  .sent-btn { position: relative; border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 999px; padding: 5px 12px 5px 6px; font-size: 14px;
+    transition: background .25s ease, color .25s ease, border-color .25s ease; }
+  .sent-btn:hover { border-color: var(--wa); color: var(--wa); }
+  .sent-btn svg { width: 20px; height: 20px; flex: none; overflow: visible; }
+  .sent-btn circle { fill: none; stroke: currentColor; stroke-width: 1.6; transition: fill .25s, stroke .25s; }
+  .sent-btn path { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset .35s ease .12s; }
+  .sent-btn.is-sent { background: var(--wa); border-color: var(--wa); color: #fff; }
+  .sent-btn.is-sent circle { fill: rgba(255,255,255,.22); stroke: transparent; }
+  .sent-btn.is-sent path { stroke-dashoffset: 0; }
+  .sent-btn.pop { animation: pop .5s cubic-bezier(.3,1.7,.5,1); }
+  .sent-btn.pop::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; border: 2px solid var(--wa);
+    animation: ring .65s ease-out forwards; pointer-events: none; }
+  .sent-btn .spark { position: absolute; left: 16px; top: 50%; width: 4px; height: 4px; border-radius: 50%;
+    background: var(--wa); opacity: 0; pointer-events: none; }
+  .sent-btn.pop .spark { animation: spark .6s ease-out forwards; }
+  @keyframes pop { 0% { transform: scale(1); } 35% { transform: scale(1.14); } 100% { transform: scale(1); } }
+  @keyframes ring { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.25, 1.7); } }
+  @keyframes spark { 0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.4); } }
+  @media (prefers-reduced-motion: reduce) {
+    .sent-btn, .sent-btn path, td, tr.leaving { transition: none; }
+    .sent-btn.pop, .sent-btn.pop::after, .sent-btn.pop .spark { animation: none; }
+  }
   td.msg { max-width: 360px; white-space: pre-wrap; color: var(--muted); font-size: 13px; }
   .bad { color: #d33; font-size: 13px; }
   .stats { color: var(--muted); font-size: 14px; }
@@ -64,12 +104,18 @@
 </style>
 </head>
 <body>
+<header class="brand">
+  <div class="brand-inner">
+    <img src="assets/logo-anahuac-mayab.svg" alt="Universidad Anáhuac Mayab">
+    <span class="tag">Asesoría Pre Universitaria</span>
+  </div>
+</header>
 <main>
-  <h1>Links de WhatsApp</h1>
+  <h1>Links de <span>WhatsApp</span></h1>
   <p class="sub">Sube la exportación de HubSpot (.xlsx o .csv) y genera un link de WhatsApp con mensaje personalizado para cada contacto.</p>
 
   <section class="card">
-    <h2>1. Archivo</h2>
+    <h2><b>1.</b> Archivo</h2>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xls,.csv">
       <div><strong>Elige un archivo</strong> o arrástralo aquí</div>
@@ -80,7 +126,7 @@
   <div id="alerts"></div>
 
   <section class="card hidden" id="mapCard">
-    <h2>2. Columnas</h2>
+    <h2><b>2.</b> Columnas</h2>
     <div class="grid">
       <div><label for="colName">Nombre</label><select id="colName"></select></div>
       <div><label for="colPhone">Teléfono</label><select id="colPhone"></select></div>
@@ -103,7 +149,7 @@
   </section>
 
   <section class="card">
-    <h2>3. Mensaje</h2>
+    <h2><b>3.</b> Mensaje</h2>
     <textarea id="tpl"></textarea>
     <div class="hint">Usa <code>{nombre}</code> y <code>{periodo}</code> donde quieras que se inserten los datos. Los emojis se respetan.
       <button class="btn-ghost" id="resetTpl" type="button" style="padding:2px 8px;margin-left:6px">Restaurar mensaje original</button></div>
@@ -111,7 +157,7 @@
 
   <section class="card hidden" id="resultsCard">
     <div class="row" style="justify-content:space-between;margin-bottom:10px">
-      <h2 style="margin:0">4. Links</h2>
+      <h2 style="margin:0"><b>4.</b> Links</h2>
       <div class="row">
         <span class="stats" id="stats"></span>
         <label class="check"><input type="checkbox" id="hideSent"> Ocultar enviados</label>
@@ -200,14 +246,13 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
     let s = String(raw ?? "").trim().replace(/\s+/g, " ");
     if (!s) return "";
     if ($("firstOnly").checked) s = s.split(" ")[0];
-    if (s === s.toUpperCase() || s === s.toLowerCase())
-      s = s.toLowerCase().replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
-    return s;
+    return titleCase(s);
   }
 
-  // Periodo siempre con la primera letra de cada palabra en mayúscula: "AGOSTO 2027" -> "Agosto 2027".
-  const SMALL = new Set(["de", "del", "y", "a", "e", "la", "el"]);
-  function fmtPeriod(raw) {
+  // Primera letra de cada palabra en mayúscula, sin importar cómo venga:
+  // "AGOSTO 2027" -> "Agosto 2027", "mARÍA DE LA LUZ" -> "María de la Luz".
+  const SMALL = new Set(["de", "del", "y", "a", "e", "la", "las", "los", "el"]);
+  function titleCase(raw) {
     const s = String(raw ?? "").trim().replace(/\s+/g, " ").toLowerCase();
     let first = true;
     return s.replace(/\p{L}+/gu, w => {
@@ -216,6 +261,7 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
       return out;
     });
   }
+  const fmtPeriod = titleCase;
 
   // ---------- file reading ----------
   function readFile(file) {
@@ -341,14 +387,46 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
       const actions = r.phone.ok
         ? `<div class="row"><a class="btn btn-wa" href="${esc(r.link)}" target="_blank" rel="noopener" data-d="${r.phone.digits}">WhatsApp</a>
            <button class="btn-ghost" data-copy="${esc(r.link)}">Copiar link</button>
-           <label class="check"><input type="checkbox" data-sent="${r.phone.digits}" ${isSent ? "checked" : ""}> Enviado</label></div>`
+           ${sentBtn(r.phone.digits, isSent)}</div>`
         : "";
       return `<tr class="${isSent ? "sent" : ""}"><td>${r.idx}</td><td>${esc(r.nombre || "—")}</td><td>${phoneCell}</td>
         <td>${esc(r.periodo || "—")}</td><td class="msg">${esc(r.msg)}</td><td>${actions}</td></tr>`;
     }).join("");
-    $("stats").textContent = `${okCount} con teléfono · ${rows.filter(r => r.phone.ok && sent.has(r.phone.digits)).length} enviados`;
-    $("resultsCard").classList.remove("hidden");
     window.__rows = rows;
+    updateStats();
+    $("resultsCard").classList.remove("hidden");
+  }
+
+  function updateStats() {
+    const rows = window.__rows || [];
+    const ok = rows.filter(r => r.phone.ok);
+    $("stats").textContent = `${ok.length} con teléfono · ${ok.filter(r => sent.has(r.phone.digits)).length} enviados`;
+  }
+
+  const SPARKS = [[-14,-12],[0,-16],[14,-12],[-14,12],[0,16],[14,12]];
+  function sentBtn(d, isSent) {
+    return `<button type="button" class="sent-btn ${isSent ? "is-sent" : ""}" data-sent="${d}" aria-pressed="${isSent}">
+      ${SPARKS.map(([x, y]) => `<i class="spark" style="--dx:${x}px;--dy:${y}px"></i>`).join("")}
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3.2 3.2L17 9"/></svg>
+      <span class="lbl">${isSent ? "Enviado" : "Marcar enviado"}</span></button>`;
+  }
+
+  // Cambia el estado en el lugar (sin redibujar la tabla) para que se vea la animación.
+  function toggleSent(d, value) {
+    if (sent.has(d) === value) return;
+    markSent(d, value);
+    document.querySelectorAll(`button.sent-btn[data-sent="${d}"]`).forEach(b => {
+      b.classList.toggle("is-sent", value);
+      b.setAttribute("aria-pressed", value);
+      b.querySelector(".lbl").textContent = value ? "Enviado" : "Marcar enviado";
+      const tr = b.closest("tr");
+      tr.classList.toggle("sent", value);
+      b.classList.remove("pop");
+      if (value) { void b.offsetWidth; b.classList.add("pop"); }
+      if (value && $("hideSent").checked) setTimeout(() => tr.classList.add("leaving"), 700);
+    });
+    updateStats();
+    if (value && $("hideSent").checked) setTimeout(render, 1100);
   }
 
   function showAlerts(warn, okMsg) {
@@ -384,13 +462,11 @@ Veo que estás interesado en seguir conociendo de la Universidad para ingreso en
 
   $("rows").addEventListener("click", e => {
     const a = e.target.closest("a[data-d]");
-    if (a) { markSent(a.dataset.d, true); setTimeout(render, 300); return; }
+    if (a) { setTimeout(() => toggleSent(a.dataset.d, true), 150); return; }
+    const s = e.target.closest("button.sent-btn");
+    if (s) { toggleSent(s.dataset.sent, !sent.has(s.dataset.sent)); return; }
     const c = e.target.closest("button[data-copy]");
     if (c) navigator.clipboard.writeText(c.dataset.copy).then(() => { c.textContent = "¡Copiado!"; setTimeout(() => c.textContent = "Copiar link", 1200); });
-  });
-  $("rows").addEventListener("change", e => {
-    const cb = e.target.closest("input[data-sent]");
-    if (cb) { markSent(cb.dataset.sent, cb.checked); render(); }
   });
 
   $("exportCsv").onclick = () => {
